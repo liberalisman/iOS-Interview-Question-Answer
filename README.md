@@ -137,6 +137,14 @@
 ```
 
 
+### 5.NSString为什么要用copy关键字，如果用strong会有什么问题？
+
+`NSString`有可变的子类`NSMutableString`。因为父类指针可以指向子类，所以避免`NSMutableString`给`NSString`赋值，所以用`Copy`修饰。
+
+`Copy`作为指针拷贝，是浅拷贝，保证了内容不会发生变化。此时如果使用`Strong`会在内存中新复制出一份。
+
+但是如果可以保证，传过来的形参肯定不是`NSMutableString`的话，那么用`Strong`就可以，因为避免了`Copy`一次，反而提高了效率。
+
 
 
 
