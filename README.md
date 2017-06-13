@@ -2,7 +2,7 @@
 
 此篇是根据知名博主 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 所提供的面试题目，所整理的答案，感谢 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 的分享，[点击产看原文。](https://juejin.im/post/5938dfdb8d6d810058481572?utm_source=weibo&utm_campaign=user。) 
 
-另外，我写此文的目的在于和广大的`iOS`开发者进行沟通交流，里面的内容多是自己的理解，如果有不正确的地方，希望大家多多指正。
+另外，我写此文的目的在于和广大的`iOS`开发者进行沟通交流，里面的内容有自己的理解，也有很大一部分参照网上的解释。很感谢之前的分享者，文末会附上相关的链接。如果在本文有理解不正确的地方，也希望大家多多指正。
 
 面试题分为三个部分，我们先从基础开始。
 
@@ -144,6 +144,14 @@
 `Copy`作为指针拷贝，是浅拷贝，保证了内容不会发生变化。此时如果使用`Strong`会在内存中新复制出一份。
 
 但是如果可以保证，传过来的形参肯定不是`NSMutableString`的话，那么用`Strong`就可以，因为避免了`Copy`一次，反而提高了效率。
+
+### 6.如何令自己所写的对象具有拷贝功能?
+
+简单说就是遵守`NSCopying`,`NSMutableCopying`协议
+
+并且实现`(id)copyWithZone:(NSZone *)zone`和`(id)mutableCopyWithZone:(NSZone *)zone`两个方法即可。
+
+深入了解可看我的[其他文章](https://github.com/liberalisman/2018-Interview-Preparation#02-shallowcopy-deepcopy)。
 
 
 
