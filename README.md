@@ -154,6 +154,7 @@
 深入了解可看我的[其他文章](https://github.com/liberalisman/2018-Interview-Preparation#02-shallowcopy-deepcopy)。
 
 
+### 7.`可变集合类` 和 `不可变集合类`的 `copy` 和 `mutablecopy` 有什么区别？如果是集合是内容复制的话，集合里面的元素也是内容复制么？
 
 
 
