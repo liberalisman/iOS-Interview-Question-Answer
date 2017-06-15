@@ -6,6 +6,8 @@
 
 面试题分为三个部分，我们先从基础开始。
 
+[TOC]
+
 ## 基础
 ### 1. 为什么说Objective-C是一门动态的语言？
 其实`Objective-C`是一门动态语言的用`运行时Runtime`可以很好地说明，但我看后面还有关于`运行时`的问题，在此处就先不展开了。
@@ -433,6 +435,109 @@
 4. `NSCache`线程是安全的。
 
 ### 19.知不知道Designated Initializer？使用它的时候有什么需要注意的问题？
+
+### 20.实现description方法能取到什么效果？
+
+举例来说明吧
+
+##### 1.我们创建一个自定义对象
+
+```objc
+@interface Person : NSObject
+
+@property (nonatomic,copy  ) NSString *name;
+@property (nonatomic,copy  ) NSString *hobbies;
+
+@end
+```
+
+##### 2.在`ViewController`中，我们引用了`Person`类
+
+```objc
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    Person *p = [[Person alloc] init];
+    
+    p.name = @"lili";
+    
+    p.hobbies = @"paint";
+    
+    NSLog(@"%@",p);
+}
+```
+此时打印出来的结果如图：
+
+```objc
+2017-06-15 13:12:00.471 cop[1561:258406] <Person: 0x60800003dc80>
+```
+
+**是不是和你预计的效果还是差了一些？**
+
+此时我们就需要重写对象的**`description`**方法
+
+##### 3.此时在`Person`的`.m`文件中，我们进行如下操作：
+
+```objc
+#import "Person.h"
+
+@implementation Person
+
+- (NSString *)description {
+
+    return [NSString stringWithFormat:@"_name = %@,_hobbies = %@",_name,_hobbies];
+}
+@end
+```
+
+再次打印
+
+```objc
+2017-06-15 13:21:20.132 cop[1593:275015] _name = lili,_hobbies = paint
+```
+
+ 通过对比之后，大家一定就明白了
+
+
+### 21.objc使用什么机制管理对象内存？
+
+Objective-C使用`AEC自动引用计数`来有效的管理内存。
+
+他遵循的原则是，谁引用，谁销毁。
+
+`Retain`,`Copy`,`Alloc`,`New`等必然对应`Release`。
+
+### 初级篇完结
+起初乍一看感觉问题并不是很多，通过总结才发现面试官的准备十分充分，涵盖了很多方面，在总结的过程中，我也等于是复习了一遍。
+
+目前针对初级篇的问题大致总结了一下，我看了中级以及高级的题目，**大致分为以下几类**：
+
+* **Runtime**
+* **RunLoop**
+* **Block**
+* **KVC & KVO**
+* **三方框架的源代码解析（AFN、SDWebImage...)**
+* **数据结构**
+
+**再加上是基础题目里也有很多值得拓展的问题**
+
+* **内存管理**
+* **数据持久化**
+* **多线程**
+* **属性修饰符**
+* **内存语义。。。。**
+
+
+关于中高级的问题，我会每个话题单独开一篇来做仔细的分析，我心里并没有十足的把握，或许上面的回答也是漏洞百出，但是希望各位同行能多多指教，指出我的不足，在此先行谢过。
+
+再次感谢 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 童鞋准备的面试题，针对你的题目，写一篇答案，有些唐突，望见谅。
+
+
+在整理这篇答案的时候，借鉴了很多网上的资料，很杂，也很难一一列出。
+
+但是关于**MVC** 和 **MVVM**，**MVP**模式的那篇，借鉴了阮一峰老师的一篇文章，写的浅显易懂，十分不错。
+
+链接在此：[MVC，MVP 和 MVVM 的图示](http://www.ruanyifeng.com/blog/2015/02/mvcmvp_mvvm.html)
+
 
 
 
