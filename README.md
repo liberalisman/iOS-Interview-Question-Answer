@@ -10,14 +10,14 @@
 
 ## 基础
 ### 1. 为什么说Objective-C是一门动态的语言？
-其实`Objective-C`是一门动态语言的用`运行时Runtime`可以很好地说明，但我看后面还有关于`运行时`的问题，在此处就先不展开了。
+其实`Objective-C`是一门动态语言的用`运行时Runtime`可以更好地说明，但我看后面还有关于`运行时`的问题，在此处就先不展开了。
 
     1. 动态类型：例如“id”类型，动态类型属于弱类型，在运行时才决定消息的接收者
     2. 动态绑定：程序在运行时需要调用什么代码是在运行时决定的，而不是在编译时。
     3. 动态载入：程序在运行时的代码模块以及相关资源是在运行时添加的，而不是启动时就加载所有资源
 
 
-### 2.简要概括一下 **MVC** 和 **MVVM**，**MVP**模式
+### 2.简要概括一下 **MVC** 和 **MVVM**，**MVP**三种模式。
 
 ##### MVC
 ![](http://image.beekka.com/blog/2015/bg2015020105.png)
@@ -60,7 +60,7 @@
 `dataSource`是数据源，决定了显示多少个`区域`，每个区域显示多少`行`，每行现实的`具体内容`,`头部,尾部`视图等。
 `delegate`是交互行为的代理,比如`点击`，`取消选中`，`是否高亮`等等。
 
-关于这个问题我有一些疑惑，比如`delegate`里面也有决定头部视图显示什么，尾部视图显示什么的方法，按我的理解应该在`DataSource`才对，请指教。
+关于这个问题我有一些疑惑，比如`delegate`里面也有决定头部视图显示什么，尾部视图显示什么的方法，按我的理解应该在`DataSource`才对，请大家指教。
 
 ##### 3.block和代理的区别?
 
@@ -70,8 +70,6 @@
 
 
 ### 4.属性的实质是什么？包括哪几个部分？属性默认的关键字都有哪些？@dynamic关键字和@synthesize关键字是用来做什么的？
-
-
 
 想深入了解，可以看一下详细的总结 : https://github.com/liberalisman/2018-Interview-Preparation#04-property
 
@@ -85,12 +83,12 @@
 
 ##### 2.属性可以拥有的特质分为四类:
 
-*  原子性--- nonatomic 特质,在默认情况下，由编译器合成的方法会通过锁定机制确保其原子性(atomicity)。如果属性具备 nonatomic 特质，则不使用自旋锁。请注意，尽管没有名为“atomic”的特质(如果某属性不具备 nonatomic 特质，那它就是“原子的” ( atomic) )，但是仍然可以在属性特质中写明这一点，编译器不会报错。若是自己定义存取方法，那么就应该遵从与属性特质相符的原子性。
+*  **原子性--- nonatomic** 特质,在默认情况下，由编译器合成的方法会通过锁定机制确保其原子性`(atomicity)`。如果属性具备 `nonatomic` 特质，则不使用`自旋锁`。请注意，尽管没有名为`atomic`的特质(如果某属性不具备 `nonatomic` 特质，那它就是“原子的” ( `atomic`) )，但是仍然可以在属性特质中写明这一点，编译器不会报错。若是自己定义存取方法，那么就应该遵从与属性特质相符的原子性。
 
-*  读/写权限---readwrite(读写)、readonly (只读)
+*  **读/写权限**---readwrite(读写)、readonly (只读)
 
-*  内存管理语义---assign、strong、 weak、unsafe_unretained、copy
-*  方法名 - getter=<name> 、setter=<name>
+*  **内存管理语义**---assign、strong、 weak、unsafe_unretained、copy
+*  **方法名** - getter=<name> 、setter=<name>
 
 
 ##### 3.属性的默认关键字:
@@ -101,7 +99,8 @@
 
 ##### 4.“自动合成”( autosynthesis)
 
->完成属性定义后，编译器会自动编写访问这些属性所需的方法，此过程叫做“自动合成”(autosynthesis)。需要强调的是，这个过程由编译 器在编译期执行，所以编辑器里看不到这些“合成方法”(synthesized method)的源代码。除了生成方法代码 getter、setter 之外，编译器还要自动向类中添加适当类型的实例变量，并且在属性名前面加下划线，以此作为实例变量的名字。。也可以在类的实现代码里通过@synthesize 语法来指定实例变量的名字.
+>完成属性定义后，编译器会自动编写访问这些属性所需的方法，此过程叫做**“自动合成”(autosynthesis)**。需要强调的是，这个过程由编译 器在编译期执行，所以编辑器里看不到这些“合成方法”(synthesized method)的源代码。除了生成方法代码** getter、setter** 之外，编译器还要自动向类中添加适当类型的实例变量，并且在属性名前面加下划线，以此作为实例变量的名字。
+>也可以在类的实现代码里通过**@synthesize** 语法来指定实例变量的名字.
 
 
 ##### 5.@dynamic
@@ -113,7 +112,6 @@
 @syntheszie var = _var;
 
 // @synthesize的语义是如果你没有手动实现setter方法和getter方法，那么编译器会自动为你加上这两个方法。
-
 // @dynamic告诉编译器,属性的setter与getter方法由用户自己实现，不自动生成。
 ```
 
@@ -200,9 +198,9 @@
 * 速度快
 
 ##### 2.atomic是绝对的线程安全么？如果不是，那应该如何实现？
-很遗憾，并不是。一个线程在连续多次读取某个属性值的过程中有别的线程在同时改写该值，那么即便将属性声明为atomic，也还是会读取到不同的属性值。虽然`atomic-原子性`能保证不同的线程同时访问一个属性的时候，它的`Setter`和`getter`方法会有序执行，但如果此时有另一个线程调用该属性的`Release`方法，还是会出问题的，因为`atomic-原子性`只能管好它的`Setter`和`getter`方法。
+很遗憾，并不是。。虽然`atomic-原子性`能保证不同的线程同时访问一个属性的时候，它的`Setter`和`getter`方法会有序执行，但如果此时有另一个线程调用该属性的`Release`方法，还是会出问题的，因为`atomic-原子性`只能管好它的`Setter`和`getter`方法。
 
-因为开锁是很耗性能的，所以在移动端，一般使用`nonatomic`,而`Mac OS`不涉及到性能瓶颈，所在在`Mac OS`上使用`atomic`。
+再者开锁是很耗性能的，所以在移动端，一般使用`nonatomic`,而`Mac OS`不涉及到性能瓶颈，所在在`Mac OS`上使用`atomic`。
 
 至于在`iOS`上保证属性在不同线程间访问的绝对安全，这块儿我暂时没有研究过，希望知道的朋友指教。
 
@@ -234,13 +232,13 @@
     // 自定义DecorationView的时候重写
     public func layoutAttributesForDecorationViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes?
     
-    // 6.这个方法是当collectionView将停止滚动的时候调用, 我们可以重写它来实现, collectionView停在指定的位置(比如照片浏览的时候, 你可以通过这个实现居中显示照片...)
+    // 6.这个方法是当collectionView将停止滚动的时候调用,得到最终偏移量。我们可以重写它来实现, collectionView停在指定的位置(比如照片浏览的时候, 你可以通过这个实现居中显示照片...)
     public func targetContentOffsetForProposedContentOffset(proposedContentOffset: CGPoint, withScrollingVelocity velocity: CGPoint) -> CGPoint
 ```
 
 ### 11.用StoryBoard开发界面有什么弊端？如何避免？
 
-其实关于`StoryBoard`还是出代码的开发方式，争吵声一直都存在，其实我个人并不反感`StoryBoard`,反而还挺喜欢。开发速度快，如果协调好，可以减轻很多工作量。不过关于`StoryBoard`这个话题如果展开的话还是比较大，建议大家读一下。喵神最近写的一篇文章，附上[原文链接](https://onevcat.com/2017/04/storyboard-argue/)，有异议的话也欢迎大家积极讨论。
+其实关于用`StoryBoard`还是纯代码的开发方式，争吵声一直都存在，其实我个人并不反感`StoryBoard`,反而还挺喜欢。开发速度快，如果协调好，可以减轻很多工作量。不过关于`StoryBoard`这个话题如果展开的话还是比较大，建议大家读一下。喵神最近写的一篇文章，附上[原文链接](https://onevcat.com/2017/04/storyboard-argue/)，有异议的话也欢迎大家积极讨论。
 
 ### 12.进程和线程的区别？同步异步的区别？并行和并发的区别？
 
@@ -252,7 +250,7 @@
 ##### 2.同步异步的区别？
 > 同步函数：不具备开线程的能力，只能串行按顺序执行任务
 > 
-> 异步函数：具备开线程的能力，但不是只要是异步函数就会开线程。
+> 异步函数：具备开线程的能力，但并不是只要是异步函数就会开线程。
 
 ##### 3.并行和并发的区别？
 >并行：并行即同时执行。比如同时开启3条线程分别执行三个不同人物，这些任务执行时同时进行的。
@@ -392,7 +390,6 @@
     }
 ```
 
- 
 2、应用进入前台并处于活动状态时候调用：
 
 ```objc
@@ -537,6 +534,12 @@ Objective-C使用`AEC自动引用计数`来有效的管理内存。
 但是关于**MVC** 和 **MVVM**，**MVP**模式的那篇，借鉴了阮一峰老师的一篇文章，写的浅显易懂，十分不错。
 
 链接在此：[MVC，MVP 和 MVVM 的图示](http://www.ruanyifeng.com/blog/2015/02/mvcmvp_mvvm.html)
+
+还有喵神的关于`storyBoard`那篇
+
+链接在此：[再看关于 Storyboard 的一些争论](https://onevcat.com/2017/04/storyboard-argue/)
+
+
 
 
 
