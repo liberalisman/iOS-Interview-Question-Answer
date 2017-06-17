@@ -1,3 +1,11 @@
+2017.6.17:目前针对第二题架构模式 和 Copy 关键字的作用有朋友提出了不同的声音,我还没有来得及验证,请大家辩证的看,我会及时更新,如果我理解错了,请不要被我误导.
+
+
+----------
+
+
+
+
 # Interview-Question & Answer （初级篇）
 
 此篇是根据知名博主 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 所提供的面试题目，所整理的答案，感谢 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 的分享，[点击查看原文。](https://juejin.im/post/5938dfdb8d6d810058481572?utm_source=weibo&utm_campaign=user。) 
