@@ -34,9 +34,10 @@
 ![](http://image.beekka.com/blog/2015/bg2015020105.png)
 
 **`MVC`模式所有的模块通信都是单向的**
-    1. `View`传递指令给`Controller`
-    2. `Controller` 完成业务逻辑后，要求 `Model` 改变状态
-    3. `Model` 将新的数据发送到 `View`，用户得到反馈
+
+1. `View`传递指令给`Controller`
+2. `Controller` 完成业务逻辑后，要求 `Model` 改变状态
+3. `Model` 将新的数据发送到 `View`，用户得到反馈
 
 **还有一种是`Controller`直接接受指令**
 
