@@ -33,7 +33,7 @@
 ##### MVC
 ![](http://image.beekka.com/blog/2015/bg2015020105.png)
 
-**`MVC`模式所有的模块通信都是单向的**
+**`MVC`模式所有的模块通信都是单向的**（这一点个人持怀疑态度，希望大家提出意见）
 
 1. `View`传递指令给`Controller`
 2. `Controller` 完成业务逻辑后，要求 `Model` 改变状态
