@@ -1,12 +1,22 @@
 # Interview-Question & Answer （初级篇）
 
+
+
+6月20日：
+1. （第四题3小问）属性的默认关键字有更新，之前说的不全面，应该区分 **基本数据类型** 和 **对象类型**
+2. （第五题） 答的也不全面，copy 是 **深拷贝** 还是 **浅拷贝**，取决于传过来的对象类型
+        
+----------------------
+
+
+
 此篇是根据知名博主 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 所提供的面试题目，所整理的答案，感谢 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 的分享，[点击查看原文。](https://juejin.im/post/5938dfdb8d6d810058481572?utm_source=weibo&utm_campaign=user。) 
 
 另外，我写此文的目的在于和广大的`iOS`开发者进行沟通交流，里面的内容有自己的理解，也有很大一部分参照网上的解释。很感谢之前的分享者，文末会附上相关的链接。如果在本文有理解不正确的地方，也希望大家多多指正。
 
 面试题分为三个部分，我们先从基础开始。
 
-[TOC]
+
 
 ## 基础
 ### 1. 为什么说Objective-C是一门动态的语言？
@@ -92,10 +102,18 @@
 
 
 ##### 3.属性的默认关键字:
+在 ARC 下，如果如果修饰的是 **Objective-C** 对象。
 
 ```objc
 @property (atomic，strong,readwrite) UIView *view;
 ```
+如果如果修饰的是基本数据类型。
+
+```objc
+@property (atomic，assign,readwrite) int num;
+```
+
+
 
 ##### 4.“自动合成”( autosynthesis)
 
@@ -139,11 +157,14 @@
 
 ### 5.NSString为什么要用copy关键字，如果用strong会有什么问题？
 
-`NSString`有可变的子类`NSMutableString`。因为父类指针可以指向子类，所以避免`NSMutableString`给`NSString`赋值，所以用`Copy`修饰。
+`NSString`有可变的子类`NSMutableString`。因为父类指针可以指向子类，避免`NSMutableString`给`NSString`赋值，造成原有的值被无形修改，所以用`Copy`修饰。
 
-`Copy`作为指针拷贝，是浅拷贝，保证了内容不会发生变化。此时如果使用`Strong`会在内存中新复制出一份。
+我们修饰 `NSString` 使用 `Copy` 关键字。
 
-但是如果可以保证，传过来的形参肯定不是`NSMutableString`的话，那么用`Strong`就可以，因为避免了`Copy`一次，反而提高了效率。
+* 如果传进来的也是 `NSString`类型，这时候`Copy`作为指针拷贝，是浅拷贝，内容不会发生变化。
+
+* 如果传进来的是 `NSMutableString`类型，这时候`Copy`作为内容拷贝，是深拷贝，在内存中新开辟出一块儿新的地址，防止原有的值被改变。
+
 
 ### 6.如何令自己所写的对象具有拷贝功能?
 
