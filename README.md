@@ -399,8 +399,8 @@
 * plist文件（属性列表）
 * preference（偏好设置）
 * NSKeyedArchiver（归档）
-* SQLite 3
-* CoreData（FMDB）
+* SQLite 3 （FMDB）
+* CoreData
 
 在此不展开了，篇幅比较大，详情见我[另一篇文章](https://github.com/liberalisman/iOS-Summary-Part1#08-ios数据持久化方案)
 
