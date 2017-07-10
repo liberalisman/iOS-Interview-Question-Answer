@@ -549,10 +549,7 @@ Objective-C使用`AEC自动引用计数`来有效的管理内存。
 * **内存语义。。。。**
 
 
-关于中高级的问题，我会每个话题单独开一篇来做仔细的分析，我心里并没有十足的把握，或许上面的回答也是漏洞百出，但是希望各位同行能多多指教，指出我的不足，在此先行谢过。
-
-再次感谢 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 童鞋准备的面试题，针对你的题目，写一篇答案，有些唐突，望见谅。
-
+关于中高级的问题，我会接下来做仔细的分析，我心里并没有十足的把握，或许上面的回答也是漏洞百出，但是希望各位同行能多多指教，指出我的不足，在此先行谢过。
 
 在整理这篇答案的时候，借鉴了很多网上的资料，很杂，也很难一一列出。
 
@@ -565,5 +562,856 @@ Objective-C使用`AEC自动引用计数`来有效的管理内存。
 链接在此：[再看关于 Storyboard 的一些争论](https://onevcat.com/2017/04/storyboard-argue/)
 
 
+
+# Interview-Question & Answer （中高级）
+## 1.KVC
+
+关于`KVC`和`KVO`,我之前的总结文章有写过，但是实际上我在平日工作里，`KVC`和`KVO`使用的相对较少，不是`KVC`和`KVO`的功能不够强大，这实际上和项目的架构有比较大的关系，以前的我对于`KVC`和`KVO`的使用也是趋于表面，没有探究其内部真正的实现原理和进阶用法，这次总结正好给了我很好的学习机会，在此深入的总结一下`KVC`和`KVO`吧。
+
+> **KVC**，即是指 **NSKeyValueCoding**，一个非正式的 **Protocol**，提供一种机制来间接访问对象的属性。**KVO** 就是基于 **KVC** 实现的关键技术之一。
+
+
+### KVC在iOS中的定义
+
+`Objective-C`中`KVC`的定义是对`NSObject`的扩展来实现的。所以对于所有继承了`NSObject`在类型，都可以使用`KVC`，下面是`KVC`最为重要的四个方法
+
+```objc
+- (nullable id)valueForKey:(NSString *)key;                          //直接通过Key来取值
+- (void)setValue:(nullable id)value forKey:(NSString *)key;          //通过Key来设值
+- (nullable id)valueForKeyPath:(NSString *)keyPath;                  //通过KeyPath来取值
+- (void)setValue:(nullable id)value forKeyPath:(NSString *)keyPath;  //通过KeyPath来设值
+```
+
+
+一般来讲，**Obj-C** 对象中都会有一些属性。如代码所示
+
+```objc
+#import <Foundation/Foundation.h>
+@interface Person : NSObject
+
+/** name */
+@property (nonatomic,copy  ) NSString *name;
+
+/** Address */
+@property (nonatomic,copy  ) NSString *address;
+
+@end
+```
+
+<!-- more -->
+
+上面的`Person`对象所拥有的两个属性，以 **KVC**的角度来看，就是`Person`对象的`name`,`address`这两个属性分别有一个`Value`对应他们的`Key`值。
+
+* Key 是一个字符串类型。
+* Value 可以为任何类型。
+
+KVC 为存取值提供了两个最基础的方法。
+
+```objc
+    Person *man = [Person new];
+    
+    // 存值
+    [man setValue:@"LiMing" forKey:@"name"];
+    
+    // 取值
+    NSString *name = [man valueForKey:@"name"];
+    
+    NSLog(@"%@",name);
+```
+
+KVC 为了便于使用还提供了另外两个方法。
+
+假设我们之前创建的这个对象有一个配偶，配偶也是一个Person对象,此时我们想在`man`这里读出`woman`的`name`属性
+
+可以这样操作
+
+```objc
+    Person *woman = [Person new];
+    
+    man.spouse = woman;
+    
+    [man setValue:@"Lily" forKeyPath:@"spouse.name"];
+    
+    NSLog(@"%@",[man valueForKeyPath:@"spouse.name"]);
+    
+    //  Key 与 KeyPath 要区分开来
+    //  Key 可以让你从一个对象中获取值
+    //  KeyPath  可以让你通过连续的多个Key获取值，着多个key值用点号 “.” 分割连接起来
+```
+
+简单对比一下
+
+```objc
+    //  结果一样的，但是用 KeyPath 更简单
+    [man valueForKeyPath:@"spouse.name"]
+
+    [[man valueForKey:@"spouse"] valueForKey:@"name"];
+```
+
+
+
+### KVC寻找Key值过程
+
+KVC在某种程度上提供了访问器的替代方案，不过只要有可能，KVC也是在访问器方法的帮助下工作。KVC按照以下顺序寻找Key值。
+#### 1.赋值
+当程序调用
+
+```objc
+- (void)setValue:(nullable id)value forKey:(NSString *)key;
+```
+
+##### 1.优先寻找访问器方法
+程序会优先调用`setKey`的属性值方法，代码直接通过`Setter`方法完成设置。这里的`key`值指的是成员变量名，`Key`值首字母大写要符合`Setter`和`Getter`方法的命名规则。
+
+##### 2.寻找_key
+如果没有找到`setKey`的访问器方法，`KVC`机制会检查
+
+```objc
++ (BOOL)accessInstanceVariablesDirectly
+```
+的返回值是否为`NO`，此方法默认返回的是`YES`。如果开发者重写了该方法让这个返回值为`NO`时，接下来`KVC`会直接调用
+
+```objc
+- (void)setValue:(id)value forUndefinedKey:(NSString *)key
+```
+
+这个时候如果你不做其他操作，就要报出异常了，所以一般人都不会这么做。
+
+接下来`KVC`机制会搜索该类里面有没有`_key`的成员变量，无论你是在声明文件中定义，还是在实现文件中定义，也无论使用了什么样的属性修饰符，只要存在着`_key`命名的变量，`KVC`都可以对该成员变量赋值。
+
+##### 3.寻找_isKey
+如果该类即没有`setKey：`的访问器方法，也没有`_key`成员变量，`KVC`机制会搜索`_isKey`的成员变量。
+
+##### 4.寻找Key和isKey
+和上面一样，如果该类即没有`setKey：`的访问器方法，也没有`_key`和`_isKey`成员变量，`KVC`机制再会继续搜索`key`和`isKey`的成员变量。再给它们赋值。
+
+如果上面列出的方法或者成员变量都不存在，系统将会执行该对象的`setValue：forUNdefinedKey：`方法，默认是抛出异常。
+
+如果开发者想让这个类禁用`KVC`里，那么重写`+ (BOOL)accessInstanceVariablesDirectly`方法让其返回NO即可，这样的话如果`KVC`没有找到`set<Key>:`属性名时，会直接用`setValue：forUNdefinedKey：`方法。
+
+
+#### 2.取值
+当程序调用
+
+```objc
+- (nullable id)valueForKey:(NSString *)key;
+```
+
+##### 1.优先查找访问器的方法
+
+首先按`getKey`、`key`、`isKey`的顺序查找`getter`方法，找到直接调用。如果是`bool`、`int`等内建值类型，会做`NSNumber`的转换。
+
+##### 2.有序集合中查找
+
+上面的`getter`没有找到，查找`countOfKey`、`objectInKeyAtIndex:`、`KeyAtIndexes`格式的方法。
+如果`countOfKey`和另外两个方法中的一个找到，那么就会返回一个可以响应`NSArray`所有方法的代理集合。发送给这个代理集合的`NSArray`消息方法，就会以`countOfKey`、`objectInKeyAtIndex:`、`KeyAtIndexes`这几个方法组合的形式调用。还有一个可选的 `getKey:range:` 方法。
+
+##### 3.无序集合中查找
+
+还没查到，那么查找`countOfKey`、`enumeratorOfKey`、`memberOfKey:`格式的方法。
+如果这三个方法都找到，那么就返回一个可以响应NSSet所有方法的代理集合。发送给这个代理集合的`NSSet`消息方法，就会以`countOfKey`、`enumeratorOfKey`、`memberOfKey:`组合的形式调用。
+
+##### 4.搜索成员变量名
+还是没查到，那么如果类方法`accessInstanceVariablesDirectly`返回`YES`，那么按`_key`，`_isKey`，`key`，`iskey`的顺序直接搜索成员名。
+
+##### 5.报出异常
+再找不到，调用`ValueForUndefinedKey:`，默认报出异常
+ 
+### 针对集合的KVC
+我们上面讲的`KVC`是一对一关系,比如`Person`类中的`name`属性。但也有一对多的关系，比如`Person`中有一个`friendsName`属性，保存的是一个人的所有朋友的名字，这时候就需要集合来处理了。
+
+对于集合类的处理，我们有两种选择
+
+#### 1.通过KVC将集合类先取出，然后在针对集合进行处理
+
+#### 2.采用KVC提供的模板方法
+
+##### 有序集合
+
+这里面的**Key**，就是被监听的属性名称
+
+```objc
+-countOfKey  
+//必须实现，对应于NSArray的基本方法count:  
+
+- objectInKeyAtIndex:
+- keyAtIndexes:  
+//这两个必须实现一个，对应于 NSArray 的方法 objectAtIndex: 和 objectsAtIndexes: 
+ 
+- getKey:range:  
+//不是必须实现的，但实现后可以提高性能，其对应于 NSArray 方法 
+- getObjects:range:  
+  
+- insertObject:inKeyAtIndex:  
+- insertKey:atIndexes:  
+//两个必须实现一个，类似于 NSMutableArray 的方法 insertObject:atIndex: 和 insertObjects:atIndexes:  
+
+- removeObjectFromKeyAtIndex:  
+- removeKeyAtIndexes:  
+//两个必须实现一个，类似于 NSMutableArray 的方法 removeObjectAtIndex: 和 removeObjectsAtIndexes:  
+
+- replaceObjectInKeyAtIndex:withObject:  
+- replaceKeyAtIndexes:withKey:  
+//可选的，如果在此类操作上有性能问题，就需要考虑实现之 
+```
+##### 无序集合
+
+```objc
+- countOfKey 
+//必须实现，对应于NSArray的基本方法count: 
+ 
+- objectInKeyAtIndex:  
+- keyAtIndexes:  
+//这两个必须实现一个，对应于 NSArray 的方法 objectAtIndex: 和 objectsAtIndexes:
+
+- getKey:range:  
+//不是必须实现的，但实现后可以提高性能，其对应于 NSArray 方法 
+- getObjects:range:  
+  
+- insertObject:inKeyAtIndex:  
+- insertKey:atIndexes:
+//两个必须实现一个，类似于 NSMutableArray 的方法 insertObject:atIndex: 和 insertObjects:atIndexes:  
+
+- removeObjectFromKeyAtIndex:  
+- removeKeyAtIndexes:  
+//两个必须实现一个，类似于 NSMutableArray 的方法 removeObjectAtIndex: 和 removeObjectsAtIndexes:
+
+- replaceObjectInKeyAtIndex:withObject:  
+- replaceKeyAtIndexes:withKey:  
+//这两个都是可选的，如果在此类操作上有性能问题，就需要考虑实现之
+```
+
+
+### KVC对基本数据类型和结构体的支持
+
+##### 1.对基本数据类型会以 NSNumber 进行包装
+
+```objc
++ (NSNumber *)numberWithChar:(char)value;  
++ (NSNumber *)numberWithUnsignedChar:(unsigned char)value;  
++ (NSNumber *)numberWithShort:(short)value;  
++ (NSNumber *)numberWithUnsignedShort:(unsigned short)value;  
++ (NSNumber *)numberWithInt:(int)value;  
++ (NSNumber *)numberWithUnsignedInt:(unsigned int)value;  
++ (NSNumber *)numberWithLong:(long)value;  
++ (NSNumber *)numberWithUnsignedLong:(unsigned long)value;  
++ (NSNumber *)numberWithLongLong:(long long)value;  
++ (NSNumber *)numberWithUnsignedLongLong:(unsigned long long)value;  
++ (NSNumber *)numberWithFloat:(float)value;  
++ (NSNumber *)numberWithDouble:(double)value;  
++ (NSNumber *)numberWithBool:(BOOL)value;  
++ (NSNumber *)numberWithInteger:(NSInteger)value NS_AVAILABLE(10_5, 2_0);  
++ (NSNumber *)numberWithUnsignedInteger:(NSUInteger)value NS_AVAILABLE(10_5, 2_0);
+```
+
+##### 2.对结构体会以 NSValue 进行包装
+
+```objc
++ (NSValue *)valueWithCGPoint:(CGPoint)point;  
++ (NSValue *)valueWithCGSize:(CGSize)size;  
++ (NSValue *)valueWithCGRect:(CGRect)rect;  
++ (NSValue *)valueWithCGAffineTransform:(CGAffineTransform)transform;  
++ (NSValue *)valueWithUIEdgeInsets:(UIEdgeInsets)insets;  
++ (NSValue *)valueWithUIOffset:(UIOffset)insets NS_AVAILABLE_IOS(5_0);  
+```
+
+所有的结构体都支持以`NSValue`进行封装
+
+
+
+
+### KVC中的集合运算符
+
+![](http://okhqmtd8q.bkt.clouddn.com/Interview-QA-Senior/1.png)
+
+集合运算符是一个特殊的`KeyPath`，可以作为参数传递给`valueForKeyPath：`方法
+##### 1.简单的集合运算符
+简单的集合运算符有以下几个 `@avg`，`@count`，`@max`，`@min`，`@sum5`
+##### 2.对象运算符
+对象运算符有`@distinctUnionOfObjects`,
+`@unionOfObjects`,这两个运算符返回的对象都是`NSArray`。
+
+1.`@distinctUnionOfObjects`会将集合在剔除重复对象之后返回
+
+2.`@unionOfObjects`会直接返回所有对象
+
+
+
+### NSKeyValueCoding其他方法
+
+```objc
++ (BOOL)accessInstanceVariablesDirectly;
+//默认返回YES，表示如果没有找到SetKey方法的话，会按照_key，_iskey，key，iskey的顺序搜索成员，设置成NO就会直接抛出异常。
+
+- (BOOL)validateValue:(inout id __nullable * __nonnull)ioValue forKey:(NSString *)inKey error:(out NSError **)outError;
+//KVC提供属性值确认的API，它可以用来检查set的值是否正确、为不正确的值做一个替换值或者拒绝设置新值并返回错误原因。
+
+- (NSMutableArray *)mutableArrayValueForKey:(NSString *)key;
+//这是集合操作的API，里面还有一系列这样的API，如果属性是一个NSMutableArray，那么可以用这个方法来返回
+
+- (nullable id)valueForUndefinedKey:(NSString *)key;
+//如果Key不存在，且没有KVC无法搜索到任何和Key有关的字段或者属性，则会调用这个方法，默认是抛出异常
+
+- (void)setValue:(nullable id)value forUndefinedKey:(NSString *)key;
+//和上一个方法一样，只不过是设值。
+
+- (void)setNilValueForKey:(NSString *)key;
+//如果你在SetValue方法时面给Value传nil，则会调用这个方法
+
+- (NSDictionary<NSString *, id> *)dictionaryWithValuesForKeys:(NSArray<NSString *> *)keys;
+//输入一组key,返回该组key对应的Value，再转成字典返回，用于将Model转到字典。
+```
+
+没想到光一个`KVC`就写了这么多的内容，而越深入写就越觉得自己写的不过是皮毛，接下来再说说`KVO`吧。
+
+## 2.KVO
+
+### 1.认识KVO
+`KVO`类似于观察者模式，我们利用简单的代码来了解什么是`KVO`。
+
+```objc
+//  注册一个Person类
+#import <Foundation/Foundation.h>
+
+@interface Person : NSObject
+@property (nonatomic,copy) NSString *name;
+@end
+
+// 再注册一个Dog类
+#import <Foundation/Foundation.h>
+
+@interface Dog : NSObject
+@property (nonatomic,copy  ) NSString *name;
+@end
+```
+
+我们在`ViewController`中引入头文件，并创建两个全局的属性。我们希望`Person`作为`Dog`的观察者，当`Dog`的`name`属性发生变化的时候，`Person`可以第一时间知道。这时我们就可以运用`KVO`的技术。
+
+```objc
+    Person *p = [Person new];
+    self.p = p;
+    Dog *dog = [Dog new];
+    self.dog = dog;
+   
+   // 成为其他对象的观察者要进行注册
+   // KeyPath代表监听对象的具体属性
+   // Observe就是观察者喽
+   // Options可以指定管擦得值得新旧等
+   // Context可以是任何对象，可以向观察者传递信息，也可以用指定的标识对不同的观察者进行区分
+    [dog addObserver:p
+          forKeyPath:@"name"
+             options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld)
+             context:nil];
+
+    dog.name = @"旺财";
+
+```
+
+监听选项`Options`是由枚举`NSKeyValueObservingOptions`定义的，他决定了哪些值可以被传入到观察者内部实现的方法中。
+
+定义如下：
+
+```objc
+enum {
+	   // 提供新值
+   	NSKeyValueObservingOptionNew = 0x01,
+   	
+   	// 提供旧值
+   	NSKeyValueObservingOptionOld = 0x02,
+   	
+   	// 添加观察者时立即发送一个通知给观察者，
+   	// 并且是在注册观察者方法返回之前
+   	NSKeyValueObservingOptionInitial = 0x04,
+   	
+   	// 如果指定，则在每次修改属性时，会在修改通知被发送之前预先发送一条通知给观察者，
+   	// 这与-willChangeValueForKey:被触发的时间是相对应的。
+   	// 这样，在每次修改属性时，实际上是会发送两条通知。
+   	NSKeyValueObservingOptionPrior = 0x08 
+};
+typedef NSUInteger NSKeyValueObservingOptions;
+//  选项值可以支持多个选项
+```
+
+注册之后，我们要在观察者内部实现如下方法
+
+```objc
+// 此时，当被观察者的属性发生变更，观察者就会自动调用如下方法
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
+    
+    // keyPath被观察的属性值
+    NSLog(@"keyPath = %@",keyPath);
+    
+    // object被观察的对象
+    NSLog(@"object = %@",object);
+    
+    // 被观察属性值得变化，后面还会讲
+    NSLog(@"change = %@",change);
+    
+    // 上下文，也可以是任意的额外数据
+    // 这个Context的作用十分重要，我在后面会强调
+    NSLog(@"context = %@",context);
+}
+// 我们通过这个方法，可以得到一些关键信息
+```
+
+
+`Change`选项，它记录了被监听属性的变化情况。可以通过key来获取值：
+
+```objc
+
+// 属性变化的类型，是一个NSNumber对象，包含NSKeyValueChange枚举相关的值
+NSString *const NSKeyValueChangeKindKey;
+
+// 属性的新值。当NSKeyValueChangeKindKey是 NSKeyValueChangeSetting，
+// 且添加观察的方法设置了NSKeyValueObservingOptionNew时，我们能获取到属性的新值。
+// 如果NSKeyValueChangeKindKey是NSKeyValueChangeInsertion或者NSKeyValueChangeReplacement，
+// 且指定了NSKeyValueObservingOptionNew时，则我们能获取到一个NSArray对象，包含被插入的对象或
+// 用于替换其它对象的对象。
+NSString *const NSKeyValueChangeNewKey;
+
+// 属性的旧值。当NSKeyValueChangeKindKey是 NSKeyValueChangeSetting，
+// 且添加观察的方法设置了NSKeyValueObservingOptionOld时，我们能获取到属性的旧值。
+// 如果NSKeyValueChangeKindKey是NSKeyValueChangeRemoval或者NSKeyValueChangeReplacement，
+// 且指定了NSKeyValueObservingOptionOld时，则我们能获取到一个NSArray对象，包含被移除的对象或
+// 被替换的对象。
+NSString *const NSKeyValueChangeOldKey;
+
+// 如果NSKeyValueChangeKindKey的值是NSKeyValueChangeInsertion、NSKeyValueChangeRemoval
+// 或者NSKeyValueChangeReplacement，则这个key对应的值是一个NSIndexSet对象，
+// 包含了被插入、移除或替换的对象的索引
+NSString *const NSKeyValueChangeIndexesKey;
+
+// 当指定了NSKeyValueObservingOptionPrior选项时，在属性被修改的通知发送前，
+// 会先发送一条通知给观察者。我们可以使用NSKeyValueChangeNotificationIsPriorKey
+// 来获取到通知是否是预先发送的，如果是，获取到的值总是@(YES)
+NSString *const NSKeyValueChangeNotificationIsPriorKey;
+
+```
+
+`NSKeyValueChangeKindKey`的值取自于`NSKeyValueChange`，这是一个枚举值，定义如下
+
+```objc
+enum {
+	// 设置一个新值。被监听的属性可以是一个对象，也可以是一对一关系的属性或一对多关系的属性。
+   	NSKeyValueChangeSetting = 1,
+   	
+   	// 表示一个对象被插入到一对多关系的属性。
+   	NSKeyValueChangeInsertion = 2,
+   	
+   	// 表示一个对象被从一对多关系的属性中移除。
+   	NSKeyValueChangeRemoval = 3,
+   	
+   	// 表示一个对象在一对多的关系的属性中被替换
+   	NSKeyValueChangeReplacement = 4
+};
+typedef NSUInteger NSKeyValueChange;
+```
+
+注意，观察者在不需要使用的时候一定要移除，否则会产生崩溃
+
+```objc
+- (void)dealloc {
+
+    [self.dog removeObserver:self.p forKeyPath:@"name"];
+}
+```
+
+通过上面简要的代码示例，我们可以得知，时运观察者只需要实现简单的几步。
+
+1. 注册观察者
+2. 观察者实现相应的方法
+3. 移除观察者
+
+
+### 2.KVC和KVO的实现原理
+`KVC`和`KVO`是基于强大的`Runtime`来实现的。其中使用到的技术就是`isa-swilling`,`isa-swilling`这项技术也是一个重点，我们会在后续的`Runtime`部分会讲到。如果有看到此处不明白的同学也请保持耐心。
+
+网上有一篇文章针对实现原理写的很好，[链接在此](http://blog.csdn.net/kesalin/article/details/8194240)。
+
+整体来说就是，当某个类的对象第一次被观察时，系统会在运行期间动态的为这个类创建一个派生类，假如被监听类名为`ClassA`，那么派生类的名称就为`NSKVONotifying_ClassA`。
+
+1.原有对象的`isa`指针会指向全新的派生类，派生类为了混淆，避免别人知道他不是原来的类，所以派生类重写了`Class`的类方法。
+
+2.同时重写了`Dealloc`方法，用于资源的销毁处理。
+
+3.还重写了`_isKVOA`,这个是一个标记，用于标示这个类是遵守`KVO`机制的。
+
+4.最关键的是重写了被监听属性的`Setter`方法，这是实现`KVO`的关键。至于为什么，后面会讲解到。
+
+简单的画了张图，可能会有助于理解。
+![](http://okhqmtd8q.bkt.clouddn.com/Interview-QA-Senior/2.png)
+
+我们上面讲重写了被观察对象属性的`Setter`方法是十分关键的，这就要说起另外两个十分重要的方法
+
+```objc
+// 在属性值即将被修改的时候，会调用这个方法
+- (void)willChangeValueForKey:(NSString *)key;
+
+// 在属性值已经被修改的时候，会调用这个方法
+- (void)didChangeValueForKey:(NSString *)key;
+
+// didChangeValueForKey:方法会显式的调用
+- (void)observeValueForKeyPath:(NSString *)keyPath 
+                      ofObject:(id)object 
+                        change:(NSDictionary<NSKeyValueChangeKey,id> *)change 
+                       context:(void *)context {
+                       }
+```
+
+其实我个人猜测，重写`Setter`方法内部应该这样实现的
+
+```objc
+[self willChangeValueForKey:@"name"];
+[super setName:name];
+[self didChangeValueForKey:@"name"];
+```
+
+说到这里，相信你应该完整的明白KVO的实现机制了。
+
+```objc
+// 这才是KVO机制触发的关键
+- (void)didChangeValueForKey:(NSString *)key;
+```
+
+
+
+### 3.调用KVO的三种方法
+
+综合上面KVO的实现原理，我们可以得出如下结论：
+
+##### 1.使用了KVC
+使用了`KVC`，如果有`访问器方法`，则运行时会在访问器方法中调用`will/didChangeValueForKey:`方法；
+没用访问器方法，运行时会在`setValue:forKey`方法中调用`will/didChangeValueForKey:`方法。
+
+##### 2.有访问器方法
+运行时会重写访问器方法调用`will/didChangeValueForKey:`方法。
+因此，直接调用访问器方法改变属性值时，KVO也能监听到。
+
+##### 3.直接调用
+显式调用`will/didChangeValueForKey:`方法。
+
+### 4.KVO自动通知、手动通知
+
+
+通常意义下我们使用的都是自动通知，注册观察者之后，当触发`will/didChangeValueForKey:`方法后，观察者对象的`- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change  context:(void *)context { }`方法会被调用。
+
+如果像实现手动通知，我们需要借助一个额外的方法
+
+```objc
++ (BOOL)automaticallyNotifiesObserversForKey:(NSString *)key
+```
+
+这个方法默认返回`YES`,用来标记`Key`指定的属性是否支持`KVO`，如果返回值为`NO`，则需要我们手动更新。
+
+
+我们还是用我们最上面的例子，监听`Person`的`name`属性，不过这次我们采取手动通知的方式。
+
+```objc
+#import "Person.h"
+
+@implementation Person
+
++ (BOOL)automaticallyNotifiesObserversForKey:(NSString *)key {
+
+    BOOL automaic = NO;
+    if ([key isEqualToString:@"name"])
+    {
+        automaic = NO;
+    }
+    else
+    {
+        // 此处需要注意，没有被处理的其他属性要调用父类的原有方法
+        automaic = [super automaticallyNotifiesObserversForKey:key];
+    }
+    return automaic;
+}
+@end
+
+
+```
+
+这样我们就已经标记好当`Person`的`name`属性发生改变时，手动发送通知，代码如下：
+
+```objc
+@implementation Person
+
+- (void)setName:(NSString *)name {
+    
+    if(name != _name)// 加一处判断，如果值相同，就无需发送通知了
+    {   
+        // 我们需要在值修改前调用`will...`方法
+        [self willChangeValueForKey:@"name"];
+        _name = name;
+        // 我们还需要在修改后调用`did...`方法，显式调用观察者的方法
+        [self didChangeValueForKey:@"name"];
+    }
+}
+@end
+
+```
+
+手动发送通知一对一的操作方法如上，如果是一对多的案例，则可以使用如下方法
+
+```objc
+- (void)willChange:(NSKeyValueChange)change valuesAtIndexes:(NSIndexSet *)indexes forKey:(NSString *)key
+- (void)didChange:(NSKeyValueChange)change valuesAtIndexes:(NSIndexSet *)indexes forKey:(NSString *)key
+  
+- (void)willChangeValueForKey:(NSString *)key withSetMutation:(NSKeyValueSetMutationKind)mutationKind usingObjects:(NSSet *)objects
+- (void)didChangeValueForKey:(NSString *)key withSetMutation:(NSKeyValueSetMutationKind)mutationKind usingObjects:(NSSet *)objects
+```
+
+### 5.注册依赖键
+
+实际开发过程中可能会遇到这种场景，某个变量的值取决于其他的值。
+
+我们还是看一个例子吧：
+
+```objc
+// 声明一个Person类，有三个属性
+#import <Foundation/Foundation.h>
+
+@interface Person : NSObject
+
+@property (nonatomic,copy) NSString *fullName;
+@property (nonatomic,copy) NSString *firstName;
+@property (nonatomic,copy) NSString *lastName;
+
+@end
+
+// 其中 fullName 取决于 firstName 和 lastName的值.
+// 同时如果 firstName 和 lastName发生改变的话,fullName也会受到影响。
+
+#import "Person.h"
+
+@implementation Person
+
+// 注册 fullName依赖于 firstName 和 lastName
++ (NSSet<NSString *> *)keyPathsForValuesAffectingFullName {
+
+    return [NSSet setWithObjects:@"firstName",@"lastName",nil];
+}
+
+- (NSString *)fullName {
+
+    NSString *tempName = _fullName;
+    
+    if (_firstName || _lastName)
+    {
+        tempName = [NSString stringWithFormat:@"%@-%@",_firstName,_lastName];
+    }
+
+    return tempName;
+}
+```
+
+
+回到Controller：
+
+```objc
+- (void)viewDidLoad {
+    
+    [super viewDidLoad];
+    
+    Person *p = [Person new];
+    self.p = p;
+    
+    [self.p  addObserver:self
+        forKeyPath:NSStringFromSelector(@selector(name))
+           options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew
+           context:ContextMark];
+    
+    self.p.fullName = @"lilei";
+    NSLog(@"fullName = %@",self.p.fullName);
+    
+    self.p.firstName = @"lala";
+    NSLog(@"fullName = %@",self.p.fullName);
+
+    self.p.lastName = @"papa";
+    NSLog(@"fullName = %@",self.p.fullName);
+}
+
+// 打印结果如下
+fullName = lilei
+fullName = lala-(null)
+fullName = lala-papa
+```
+
+### 6.KVO使用中的"坑"
+
+> 最近我在看这方面资料的时候，发现大家都以 `tableView`和`ContentOffset`作为例子。咱们就用这个最常见的控件来说明一下吧。
+
+##### 1.keyPath为字符串
+
+众所周知，KVO里面的`KeyPath`是`NSString`类型，结合`Obj-C`动态语言的特性，在编译时是不做检查的，只有运行到执行的时候，才会动态的去`方法列表`、`实例变量列表`中去查找，所以一旦我们写错了`KeyPath`，不运行的时候很难发现。
+
+基于这个问题，我们用以下的方法规避
+
+```objc
+// 这样就不会写错了
+NSStringFromSelector(@selector(contentSize))
+```
+
+
+##### 2.多层继承、共用同一个回调方法
+
+假如父类的控制器监听了`tableView`的`ContentOffset`属性，同时该控制器还监听了其他控件的一些属性，但是同一个对象或者控制器作为多个对象属性的观察者，实际上最后调用的都是同一个回调方法`- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change  context:(void *)context { }`，这样写极其容易混淆，所以我们为了解决这个问题，把代码写成如下的样子
+
+```objc
+- (void)observeValueForKeyPath:(NSString *)keyPath 
+                      ofObject:(id)object
+                        change:(NSDictionary *)change 
+                       context:(void *)context
+{
+    if (object == _tableView && [keyPath isEqualToString:@"contentOffset"]) 
+    {
+        [self doSomethingWhenContentOffsetChanges];
+ 　　} 
+}
+```
+
+但是光这样写是不全面的，因为当前的这个类很可能有父类，并且它的父类可能绑定了一些其他的KVO,上面的代码只有一个条件判断，一旦不成立，此次KVO的触发操作也就断了。而当前类无法捕捉的这个KVO事件很可能就在它的父类里，或者是父类的父类，上述操作，将这一链条截断，所以正确的方法应该如下：
+
+```objc
+- (void)observeValueForKeyPath:(NSString *)keyPath 
+                      ofObject:(id)object
+                        change:(NSDictionary *)change 
+                       context:(void *)context
+{
+    if (object == _tableView && [keyPath isEqualToString:@"contentOffset"]) 
+    {
+        [self doSomethingWhenContentOffsetChanges];
+ 　　} 
+ 　　else
+ 　　{
+ 　　    [super observeValueForKeyPath:keyPath 
+ 　　                         ofObject:object 
+ 　　                           change:change 
+ 　　                          context:context];
+ 　　}
+}
+
+```
+这样做这一链条就完整的保留了。
+
+##### 3.观察者的注销
+
+上面的方法做完之后还是有隐患的。我们知道KVO不用的时候是需要注销的。我们知道当你对同一个KVO注销两次的时候，系统默认是抛出异常的。
+
+你可能会好奇，什么时候我会对同一个`Observer`注销多次呢？
+
+这个时候我们可以想一下我们注销`Observer`的时机，是不是多在`Dealloc`方法中？
+
+在`Obj-C`中，有很多系统的方法被重写时需要调用`super xxxxxxx`等方法，这是`Obj-C`的继承关系决定的。
+
+例如：
+
+```objc
+// 在重写init方法时，我们要调用一下父类的init方法
+- (instancetype)init {
+
+    [super init];
+}
+
+// 布局子控件时，要调用一下父类的layoutSubviews方法
+- (void)layoutSubviews {
+
+    [super layoutSubviews];
+}
+```
+
+还有些方法，不需要调用父类的方法，自动就会帮你调用，就如我们所说的`Dealloc`。其实只有在`ARC`模式下才不需要调用父类，`MRC`下的`Dealloc`还是要手动调用`super dealloc`的。
+
+
+所以我们在注销观察者的时候就这么写
+
+```objc
+- (void)dealloc {
+
+    [_tableView removeObserver:self forKeyPath:@"contentOffset"];
+}
+```
+
+假设我们有三个类 `ClassA（父类）`，`ClassB（子类）`，`ClassC（孙子类）`。这三个类都作为观察者，观察`tableView`的`contentOffset`属性。
+
+
+如果我们在`ClassC（孙子类）`的`Dealloc`方法中释放观察者
+
+```objc
+- (void)dealloc {
+
+    [_tableView removeObserver:self forKeyPath:@"contentOffset"];
+}
+```
+当`ClassC（孙子类）`的`Dealloc`执行完毕后，就会自动去`ClassB（子类）`的`Dealloc`方法中，释放观察者
+
+```objc
+- (void)dealloc {
+
+    [_tableView removeObserver:self forKeyPath:@"contentOffset"];
+}
+```
+这个时候就出现崩溃了，因为我们在前面提到过这样会导致相同的removeObserver被执行两次，于是导致crash。
+
+
+##### 4.正确写法
+针对这种类型的Crash，我们就要谈一下在注册`Observer`似的一个关键的参数`Context`，之前我是不知道这个`Context`是做啥用的，对于`KVO`的使用只是流于表面，所以对于这个神秘的`Context`的作用一直没有深究，现在我们将使用`Context`来为每一个`Observer`做区分，避免多次调用相同的`removeObserver`。
+
+
+KVO的三个关键方法
+
+```objc
+//  注册观察者
+- (void)addObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath options:(NSKeyValueObservingOptions)options context:(nullable void *)context;
+
+// 观察者响应方法
+- (void)observeValueForKeyPath:(nullable NSString *)keyPath ofObject:(nullable id)object change:(nullable NSDictionary<NSKeyValueChangeKey, id> *)change context:(nullable void *)context;
+
+// 移除观察者（有两个方法）
+- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context NS_AVAILABLE(10_7, 5_0);
+
+- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath;
+```
+
+相比细心的同学已经看出来了，我们在**注册**、**响应**、**移除**的三个步骤里，都可以找到`Context`这个关键字。所以为了保持**注册**、**响应**、**移除**的一致性，正确的写法应该如下：
+
+
+```objc
+// 首先我们应在使用KVO的类中，创建一个独一无二的Context，用来和其他类进行区分
+static Void *ContextMark = &ContextMark;
+
+// 接下来注册的时候用
+ [_tableView addObserver:self
+              forKeyPath:NSStringFromSelector(@selector(contentSize))
+                 options:(NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld)
+                 context:ContextMark];
+                 
+// 响应的时候用
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
+    
+    if (context == ContextMark)
+    {
+        // do someThing
+    }
+    else
+    {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
+}
+
+// 注销的时候用
+- (void)dealloc {
+    [_tableView removeObserver:self 
+                    forKeyPath:NSStringFromSelector(@selector(contentSize)) 
+                       context:ContextMark];
+}
+```
+如果还不放心，也可以使用`@try @catch`去捕获异常
+
+
+### 7.总结、
+
+![](http://imgsrc.baidu.com/forum/w=580/sign=bdaac71373094b36db921be593cd7c00/5635b9096b63f624e76700cf8244ebf81b4ca3ea.jpg)
+
+`KVO`这套 API 真麻烦~~~~~  
 
 
