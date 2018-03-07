@@ -420,6 +420,7 @@ NSLog(@"%p,%p,%p,%p", string, copyString, mutableCopyString, copyMutableString);
     dispatch_group_leave(group);//异步block中，所有的任务都执行完毕，最后离开群组
     //注意：dispatch_group_enter|dispatch_group_leave必须成对使用
 ```
+#####     6.信号量（并发编程中很有用）
 
 ### 15.如何使用队列来避免资源抢夺？
 
@@ -565,10 +566,10 @@ Objective-C使用`AEC自动引用计数`来有效的管理内存。
 
 目前针对初级篇的问题大致总结了一下，我看了中级以及高级的题目，**大致分为以下几类**：
 
-* **Runtime**
-* **RunLoop**
-* **Block**
-* **KVC & KVO**
+* **Runtime**  [参考文章即可](http://yulingtianxia.com/blog/2014/11/05/objective-c-runtime/)
+* **RunLoop**  [参考文章即可](https://blog.ibireme.com/2015/05/18/runloop/)
+* **Block**    [参考文章即可](https://www.jianshu.com/p/14efa33b3562)
+* **KVC & KVO** [我的另一篇文章](https://github.com/liberalisman/KVC-KVO)
 * **三方框架的源代码解析（AFN、SDWebImage...)**
 * **数据结构**
 
