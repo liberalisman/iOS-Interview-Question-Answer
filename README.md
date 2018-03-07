@@ -1,7 +1,39 @@
 
-# Interview-Question & Answer （初级篇）
+# Interview-Question & Answer 
 
 
+
+### 初级篇完结
+起初乍一看感觉问题并不是很多，通过总结才发现面试官的准备十分充分，涵盖了很多方面，在总结的过程中，我也等于是复习了一遍。
+
+目前针对初级篇的问题大致总结了一下，我看了中级以及高级的题目，**大致分为以下几类**：
+
+* **Runtime**  [参考文章即可](http://yulingtianxia.com/blog/2014/11/05/objective-c-runtime/)
+* **RunLoop**  [参考文章即可](https://blog.ibireme.com/2015/05/18/runloop/)
+* **Block**    [参考文章即可](https://www.jianshu.com/p/14efa33b3562)
+* **KVC & KVO** [我的另一篇文章](https://github.com/liberalisman/KVC-KVO)
+* **三方框架的源代码解析（AFN、SDWebImage...)**
+* **数据结构**
+
+**再加上是基础题目里也有很多值得拓展的问题**
+
+* **内存管理**
+* **数据持久化**
+* **多线程**
+* **属性修饰符**
+* **内存语义。。。。**
+
+
+关于中高级的问题，我会接下来做仔细的分析，我心里并没有十足的把握，或许上面的回答也是漏洞百出，但是希望各位同行能多多指教，指出我的不足，在此先行谢过。
+
+在整理这篇答案的时候，借鉴了很多网上的资料，很杂，也很难一一列出。
+
+
+喵神的关于`storyBoard`那篇
+
+链接在此：[再看关于 Storyboard 的一些争论](https://onevcat.com/2017/04/storyboard-argue/)
+
+-----------------------
 此篇是根据知名博主 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 所提供的面试题目，所整理的答案，感谢 [J-Knight](http://weibo.com/u/1929625262?from=feed&loc=nickname) 的分享，[点击查看原文。](https://juejin.im/post/5938dfdb8d6d810058481572?utm_source=weibo&utm_campaign=user。) 
 
 另外，我写此文的目的在于和广大的`iOS`开发者进行沟通交流，里面的内容有自己的理解，也有很大一部分参照网上的解释。很感谢之前的分享者，文末会附上相关的链接。如果在本文有理解不正确的地方，也希望大家多多指正。
@@ -561,38 +593,7 @@ Objective-C使用`AEC自动引用计数`来有效的管理内存。
 
 `Retain`,`Copy`,`Alloc`,`New`等必然对应`Release`。
 
-### 初级篇完结
-起初乍一看感觉问题并不是很多，通过总结才发现面试官的准备十分充分，涵盖了很多方面，在总结的过程中，我也等于是复习了一遍。
 
-目前针对初级篇的问题大致总结了一下，我看了中级以及高级的题目，**大致分为以下几类**：
-
-* **Runtime**  [参考文章即可](http://yulingtianxia.com/blog/2014/11/05/objective-c-runtime/)
-* **RunLoop**  [参考文章即可](https://blog.ibireme.com/2015/05/18/runloop/)
-* **Block**    [参考文章即可](https://www.jianshu.com/p/14efa33b3562)
-* **KVC & KVO** [我的另一篇文章](https://github.com/liberalisman/KVC-KVO)
-* **三方框架的源代码解析（AFN、SDWebImage...)**
-* **数据结构**
-
-**再加上是基础题目里也有很多值得拓展的问题**
-
-* **内存管理**
-* **数据持久化**
-* **多线程**
-* **属性修饰符**
-* **内存语义。。。。**
-
-
-关于中高级的问题，我会接下来做仔细的分析，我心里并没有十足的把握，或许上面的回答也是漏洞百出，但是希望各位同行能多多指教，指出我的不足，在此先行谢过。
-
-在整理这篇答案的时候，借鉴了很多网上的资料，很杂，也很难一一列出。
-
-但是关于**MVC** 和 **MVVM**，**MVP**模式的那篇，借鉴了阮一峰老师的一篇文章，写的浅显易懂，十分不错。
-
-链接在此：[MVC，MVP 和 MVVM 的图示](http://www.ruanyifeng.com/blog/2015/02/mvcmvp_mvvm.html)
-
-还有喵神的关于`storyBoard`那篇
-
-链接在此：[再看关于 Storyboard 的一些争论](https://onevcat.com/2017/04/storyboard-argue/)
 
 
 
